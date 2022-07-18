@@ -99,6 +99,7 @@ class Level:
         player = self.player.sprite
         player.apply_gravity()
 
+        #looping through all the tiles in the tile sprite group to detect collisions
         for sprite in self.tiles.sprites():
             if sprite.rect.colliderect(player.rect):
                 if player.direction.y > 0:

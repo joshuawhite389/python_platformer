@@ -3,13 +3,27 @@ from tiles import *
 from settings import *
 from player import Player
 from dust_particles import ParticleEffect
+from support import import_csv_layout
+from support import import_cut_graphic
 
 class Level:
     def __init__(self, level_data, surface):
         #we pass in the screen in the main file as the surface here
         self.display_surface = surface
-        #the level map will be passed in as level data in main file
-        self.setup_level(level_data)
+
+
+        #terrain setup
+        terrain_layout = import_csv_layout(level_data['terrain'])
+        self.terrain_sprites = self.create_tile_group(terrain_layout, 'terrain')
+
+        #grass setup
+        grass_layout = import_csv_layout(level_data['grass'])
+        self.grass_sprites = self.create_tile_group(grass_layout, 'grass')
+
+        # crate setup
+        crate_layout = import_csv_layout(level_data['crate'])
+        self.crate_sprites = self.create_tile_group(crate_layout, 'crate')
+
         #see below
         self.world_shift = 0
         self.current_x = 0
@@ -41,22 +55,38 @@ class Level:
             fall_dust_particle = ParticleEffect(self.player.sprite.rect.midbottom - offset, 'land')
             self.dust_sprite.add(fall_dust_particle)
 
-    def setup_level(self, layout):
-        self.tiles = pygame.sprite.Group()
+    def create_tile_group(self, layout, type):
+        sprite_group= pygame.sprite.Group()
         self.player = pygame.sprite.GroupSingle()
         for row_index, row in enumerate(layout):
-            for col_index, cell in enumerate(row):
+            for col_index, val in enumerate(row):
                 # if we don't multiply by tile size, they all stack on top of each other
                 x = col_index * tile_size
                 y = row_index * tile_size
-                if cell == 'X':
-                    tile = Tile((x,y),tile_size)
-                    #this gets drawn in the run method below
-                    self.tiles.add(tile)
-            # we are creating the player here
-                if cell == 'P':
-                    player_sprite = Player((x, y), self.display_surface, self.create_jump_particles)
-                    self.player.add(player_sprite)
+                if val != '-1':
+                    if type == 'terrain':
+                        terrain_tile_list = import_cut_graphic('../graphics/terrain/terrain_tiles.png')
+                        tile_surface = terrain_tile_list[int(val)]
+                        sprite = StaticTile(tile_surface,(x,y),tile_size)
+
+                    if type == 'grass':
+                        grass_tile_list = import_cut_graphic('../graphics/decoration/grass/grass.png')
+                        tile_surface = grass_tile_list[int(val)]
+                        sprite = StaticTile(tile_surface,(x,y),tile_size)
+
+                    if type == 'crate':
+                        sprite = Crate(tile_size,(x,y))
+
+                    sprite_group.add(sprite)
+
+
+            #         #this gets drawn in the run method below
+            #         self.tiles.add(tile)
+            # # we are creating the player here
+            #     if val == 'P':
+            #         player_sprite = Player((x, y), self.display_surface, self.create_jump_particles)
+            #         self.player.add(player_sprite)
+        return sprite_group
 
     def scroll_x(self):
         player = self.player.sprite
@@ -120,21 +150,32 @@ class Level:
 
 
         # dust particles
-        self.dust_sprite.update(self.world_shift)
-        self.dust_sprite.draw(self.display_surface)
+        # self.dust_sprite.update(self.world_shift)
+        # self.dust_sprite.draw(self.display_surface)
 
         # the world shift is used to scroll the screen
         # calling the update method from the tiles class which just shifts the screen based on some x value
 
         #level tiles
-        self.tiles.update(self.world_shift)
-        self.tiles.draw(self.display_surface)
-        self.scroll_x()
+
+        #terrain
+        self.terrain_sprites.update(self.world_shift)
+        self.terrain_sprites.draw(self.display_surface)
+
+        #grass
+        self.grass_sprites.update(self.world_shift)
+        self.grass_sprites.draw(self.display_surface)
+
+        # crate
+        self.crate_sprites.update(self.world_shift)
+        self.crate_sprites.draw(self.display_surface)
+
+        # self.scroll_x()
 
         #player
-        self.player.update()
-        self.get_player_on_ground()
-        self.horizontal_movement_collision()
-        self.vertical_movement_collision()
-        self.create_landing_dust()
-        self.player.draw(self.display_surface)
+        # self.player.update()
+        # self.get_player_on_ground()
+        # self.horizontal_movement_collision()
+        # self.vertical_movement_collision()
+        # self.create_landing_dust()
+        # self.player.draw(self.display_surface)

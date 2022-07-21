@@ -11,9 +11,11 @@ level_map = [
     'XXXXX  XXXXXXX  XX  XXXX  XX'
 ]
 
+#from tile editor
+vertical_tile_number = 11
 tile_size = 64
 screen_width = 1200
 #multiply number of rows in map by tile_size to get screen_height
-screen_height = len(level_map) * tile_size
+screen_height = vertical_tile_number * tile_size
 
 

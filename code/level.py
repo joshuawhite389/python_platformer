@@ -24,6 +24,14 @@ class Level:
         crate_layout = import_csv_layout(level_data['crate'])
         self.crate_sprites = self.create_tile_group(crate_layout, 'crate')
 
+        #coins setup
+        coins_layout = import_csv_layout(level_data['coins'])
+        self.coins_sprites = self.create_tile_group(coins_layout, 'coins')
+
+        #fg palms
+        fg_palms_layout = import_csv_layout(level_data['fg_palms'])
+        self.fg_palms_sprites = self.create_tile_group(fg_palms_layout, 'fg_palms')
+
         #see below
         self.world_shift = 0
         self.current_x = 0
@@ -77,7 +85,21 @@ class Level:
                     if type == 'crate':
                         sprite = Crate(tile_size,(x,y))
 
+                    if type == 'coins':
+                        if val == '0':
+                            sprite = Coin(tile_size, (x, y), '../graphics/coins/gold')
+
+                        if val == '1':
+                            sprite = Coin(tile_size, (x, y), '../graphics/coins/silver')
+
+                    if type == 'fg_palms':
+                        sprite = Palm(tile_size, (x, y), '../graphics/terrain/palm_small', 38)
+
                     sprite_group.add(sprite)
+
+
+
+
 
 
             #         #this gets drawn in the run method below
@@ -169,6 +191,14 @@ class Level:
         # crate
         self.crate_sprites.update(self.world_shift)
         self.crate_sprites.draw(self.display_surface)
+
+        # coins
+        self.coins_sprites.update(self.world_shift)
+        self.coins_sprites.draw(self.display_surface)
+
+        #foreground palms
+        self.fg_palms_sprites.update(self.world_shift)
+        self.fg_palms_sprites.draw(self.display_surface)
 
         # self.scroll_x()
 

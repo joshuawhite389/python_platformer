@@ -5,6 +5,7 @@ from player import Player
 from dust_particles import ParticleEffect
 from support import import_csv_layout
 from support import import_cut_graphic
+from enemy import Enemy
 
 class Level:
     def __init__(self, level_data, surface):
@@ -31,6 +32,14 @@ class Level:
         #fg palms
         fg_palms_layout = import_csv_layout(level_data['fg_palms'])
         self.fg_palms_sprites = self.create_tile_group(fg_palms_layout, 'fg_palms')
+
+        # bg palms
+        bg_palms_layout = import_csv_layout(level_data['bg_palms'])
+        self.bg_palms_sprites = self.create_tile_group(bg_palms_layout, 'bg_palms')
+
+        # enemies
+        enemy_layout = import_csv_layout(level_data['enemies'])
+        self.enemy_sprites = self.create_tile_group(enemy_layout, 'enemies')
 
         #see below
         self.world_shift = 0
@@ -88,12 +97,22 @@ class Level:
                     if type == 'coins':
                         if val == '0':
                             sprite = Coin(tile_size, (x, y), '../graphics/coins/gold')
-
                         if val == '1':
                             sprite = Coin(tile_size, (x, y), '../graphics/coins/silver')
 
                     if type == 'fg_palms':
-                        sprite = Palm(tile_size, (x, y), '../graphics/terrain/palm_small', 38)
+                        if val == '0':
+                            sprite = Palm(tile_size, (x, y), '../graphics/terrain/palm_small', 38)
+                        if val == '1':
+                            sprite = Palm(tile_size, (x, y), '../graphics/terrain/palm_large', 70)
+
+                    if type == 'bg_palms':
+                        sprite = Palm(tile_size, (x, y), '../graphics/terrain/palm_bg', 64)
+
+                    if type == 'enemies':
+                        print('enemies!!!')
+                        sprite = Enemy(tile_size, (x, y))
+                        
 
                     sprite_group.add(sprite)
 
@@ -180,17 +199,21 @@ class Level:
 
         #level tiles
 
+        # background palms
+        self.bg_palms_sprites.update(self.world_shift)
+        self.bg_palms_sprites.draw(self.display_surface)
+
         #terrain
         self.terrain_sprites.update(self.world_shift)
         self.terrain_sprites.draw(self.display_surface)
 
-        #grass
-        self.grass_sprites.update(self.world_shift)
-        self.grass_sprites.draw(self.display_surface)
-
         # crate
         self.crate_sprites.update(self.world_shift)
         self.crate_sprites.draw(self.display_surface)
+
+        #grass
+        self.grass_sprites.update(self.world_shift)
+        self.grass_sprites.draw(self.display_surface)
 
         # coins
         self.coins_sprites.update(self.world_shift)
@@ -199,6 +222,10 @@ class Level:
         #foreground palms
         self.fg_palms_sprites.update(self.world_shift)
         self.fg_palms_sprites.draw(self.display_surface)
+
+        # enemies
+        self.enemy_sprites.update(self.world_shift)
+        self.enemy_sprites.draw(self.display_surface)
 
         # self.scroll_x()
 

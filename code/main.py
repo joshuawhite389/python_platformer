@@ -1,4 +1,4 @@
-import pygame, sys
+import sys
 from settings import *
 from tiles import *
 from level import Level

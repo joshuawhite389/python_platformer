@@ -6,12 +6,18 @@ from dust_particles import ParticleEffect
 from support import import_csv_layout
 from support import import_cut_graphic
 from enemy import Enemy
+from decoration import Sky, Water, Clouds
 
 class Level:
     def __init__(self, level_data, surface):
         #we pass in the screen in the main file as the surface here
         self.display_surface = surface
 
+        #PLAYER
+        player_layout = import_csv_layout(level_data['player'])
+        self.player = pygame.sprite.GroupSingle()
+        self.goal = pygame.sprite.GroupSingle()
+        self.player_setup(player_layout)
 
         #terrain setup
         terrain_layout = import_csv_layout(level_data['terrain'])
@@ -41,6 +47,16 @@ class Level:
         enemy_layout = import_csv_layout(level_data['enemies'])
         self.enemy_sprites = self.create_tile_group(enemy_layout, 'enemies')
 
+        # constraints
+        constraint_layout = import_csv_layout(level_data['constraint'])
+        self.constraint_sprites = self.create_tile_group(constraint_layout, 'constraint')
+
+        # decoration
+        self.sky = Sky(8)
+        level_width = len(terrain_layout[0] * tile_size)
+        self.water = Water(screen_height - 20, level_width)
+        self.clouds = Clouds(400, level_width, 25)
+
         #see below
         self.world_shift = 0
         self.current_x = 0
@@ -56,6 +72,49 @@ class Level:
             pos += pygame.math.Vector2(10, -5)
         jump_particle_sprite = ParticleEffect(pos, 'jump')
         self.dust_sprite.add(jump_particle_sprite)
+
+    def horizontal_movement_collision(self):
+        player = self.player.sprite
+        player.rect.x += player.direction.x * player.speed
+        collidable_sprite = self.terrain_sprites.sprites() + self.crate_sprites.sprites() + self.fg_palms_sprites.sprites()
+
+        for sprite in collidable_sprite:
+            if sprite.rect.colliderect(player.rect):
+                if player.direction.x < 0:
+                    player.rect.left = sprite.rect.right
+                    player.on_left = True
+                    self.current_x = player.rect.left
+                elif player.direction.x > 0:
+                    player.rect.right = sprite.rect.left
+                    player.on_right = True
+                    self.current_x = player.rect.right
+
+        if player.on_left and (player.rect.left < self.current_x or player.direction.x >=0):
+            player.on_left = False
+        if player.on_right and (player.rect.right > self.current_x or player.direction.x <= 0):
+            player.on_right = False
+
+    def vertical_movement_collision(self):
+        player = self.player.sprite
+        player.apply_gravity()
+        collidable_sprite = self.terrain_sprites.sprites() + self.crate_sprites.sprites() + self.fg_palms_sprites.sprites()
+
+        #looping through all the tiles in the tile sprite group to detect collisions
+        for sprite in collidable_sprite:
+            if sprite.rect.colliderect(player.rect):
+                if player.direction.y > 0:
+                    player.rect.bottom = sprite.rect.top
+                    player.direction.y = 0
+                    player.on_ground = True
+                elif player.direction.y < 0:
+                    player.rect.top = sprite.rect.bottom
+                    player.direction.y = 0
+                    player.on_ceiling = True
+
+            if player.on_ground and player.direction.y < 0 or player.direction.y > 1:
+                player.on_ground = False
+            if player.on_ceiling and player.direction.y > 0 :
+                player.on_ceiling = False
 
     def get_player_on_ground(self):
         if self.player.sprite.on_ground:
@@ -110,11 +169,15 @@ class Level:
                         sprite = Palm(tile_size, (x, y), '../graphics/terrain/palm_bg', 64)
 
                     if type == 'enemies':
-                        print('enemies!!!')
                         sprite = Enemy(tile_size, (x, y))
-                        
+
+                    if type == 'constraint':
+                        sprite = Tile((x, y), tile_size)
 
                     sprite_group.add(sprite)
+                # having an unbound local error, this else statement fixes it but is confusing, I don't know why the constraint type caused this where the other types did not
+                else:
+                    sprite = Tile((0,0), 1)
 
 
 
@@ -128,6 +191,28 @@ class Level:
             #         player_sprite = Player((x, y), self.display_surface, self.create_jump_particles)
             #         self.player.add(player_sprite)
         return sprite_group
+
+    def player_setup(self, layout):
+        for row_index, row in enumerate(layout):
+            for col_index, val in enumerate(row):
+                # if we don't multiply by tile size, they all stack on top of each other
+                x = col_index * tile_size
+                y = row_index * tile_size
+                if val == '0':
+                    print('PLAYERRRR!!!!!')
+                    sprite = Player((x,y), self.display_surface, self.create_jump_particles)
+                    self.player.add(sprite)
+                if val == '1':
+                    hat_surface = pygame.image.load('../graphics/character/hat.png').convert_alpha()
+                    sprite = StaticTile(hat_surface, (x,y), tile_size)
+                    self.goal.add(sprite)
+
+
+
+    def enemy_collision_reverse(self):
+        for enemy in self.enemy_sprites.sprites():
+            if pygame.sprite.spritecollide(enemy, self.constraint_sprites, False):
+                enemy.reverse()
 
     def scroll_x(self):
         player = self.player.sprite
@@ -146,46 +231,7 @@ class Level:
 
     #need to separately address vertical and horizontal collisions in pygame
 
-    def horizontal_movement_collision(self):
-        player = self.player.sprite
-        player.rect.x += player.direction.x * player.speed
 
-        for sprite in self.tiles.sprites():
-            if sprite.rect.colliderect(player.rect):
-                if player.direction.x < 0:
-                    player.rect.left = sprite.rect.right
-                    player.on_left = True
-                    self.current_x = player.rect.left
-                elif player.direction.x > 0:
-                    player.rect.right = sprite.rect.left
-                    player.on_right = True
-                    self.current_x = player.rect.right
-
-        if player.on_left and (player.rect.left < self.current_x or player.direction.x >=0):
-            player.on_left = False
-        if player.on_right and (player.rect.right > self.current_x or player.direction.x <= 0):
-            player.on_right = False
-
-    def vertical_movement_collision(self):
-        player = self.player.sprite
-        player.apply_gravity()
-
-        #looping through all the tiles in the tile sprite group to detect collisions
-        for sprite in self.tiles.sprites():
-            if sprite.rect.colliderect(player.rect):
-                if player.direction.y > 0:
-                    player.rect.bottom = sprite.rect.top
-                    player.direction.y = 0
-                    player.on_ground = True
-                elif player.direction.y < 0:
-                    player.rect.top = sprite.rect.bottom
-                    player.direction.y = 0
-                    player.on_ceiling = True
-
-            if player.on_ground and player.direction.y < 0 or player.direction.y > 1:
-                player.on_ground = False
-            if player.on_ceiling and player.direction.y > 0 :
-                player.on_ceiling = False
 
     def run(self):
 
@@ -198,6 +244,10 @@ class Level:
         # calling the update method from the tiles class which just shifts the screen based on some x value
 
         #level tiles
+
+        # decoration
+        self.sky.draw(self.display_surface)
+        self.clouds.draw(self.display_surface, self.world_shift)
 
         # background palms
         self.bg_palms_sprites.update(self.world_shift)
@@ -227,12 +277,32 @@ class Level:
         self.enemy_sprites.update(self.world_shift)
         self.enemy_sprites.draw(self.display_surface)
 
+        # constraints
+        # we update but do not draw, we just use them to control enemies
+        self.constraint_sprites.update(self.world_shift)
+        self.enemy_collision_reverse()
+
+        #player sprites
+        self.player.update()
+        self.horizontal_movement_collision()
+        self.vertical_movement_collision()
+        self.player.draw(self.display_surface)
+        self.goal.update(self.world_shift)
+        self.goal.draw(self.display_surface)
+
+
+
+        #water
+        self.water.draw(self.display_surface, self.world_shift)
+
+
+
+
         # self.scroll_x()
 
         #player
-        # self.player.update()
+        #
         # self.get_player_on_ground()
-        # self.horizontal_movement_collision()
-        # self.vertical_movement_collision()
+        #
         # self.create_landing_dust()
-        # self.player.draw(self.display_surface)
+        #

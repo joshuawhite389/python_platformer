@@ -36,7 +36,7 @@ def import_csv_layout(path):
         return terrain_map
 
 
-def import_cut_graphic(path):
+def import_cut_graphics(path):
     surface = pygame.image.load(path).convert_alpha()
     tile_num_x = int(surface.get_size()[0] / tile_size)
     tile_num_y = int(surface.get_size()[0] / tile_size)

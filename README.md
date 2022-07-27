@@ -8,7 +8,7 @@
   
   What remains is art work, polish, and "fun"
   
-  Below, "customizable code" refers to parts of the code that might be reasonably easy or fun to modify 
+  **Below, "customizable code" refers to parts of the code that might be reasonably easy or fun to modify 
   
 ## main.py
 
